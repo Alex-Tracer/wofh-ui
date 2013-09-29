@@ -71,6 +71,12 @@ function $x(expression, parent) {
     return results;
 }
 
+
+function $c(className, parent) {
+    "use strict";
+    return (parent || document).getElementsByClassName(className)
+}
+
 // создание элемента
 function $e(tag, content, attributes, style, parent) {
 
@@ -420,12 +426,12 @@ Holder.prototype.injectTownInfo = function() {
     var tname = data[1].trim();
     tid = data[2].trim();
 
-    data = $x("//div[@id='inf_tt_u']/div[@id='inf_tt_text_table1']/a[contains(@href, 'account?id=')]");
+    data = $x("//div[@class='inf_t_l_b2']/dl/dd/a[contains(@href, 'account?id=')]");
     var pid = data[0].href.match(/id=(\d+)/)[1];
     var pname = data[0].innerHTML.trim();
 
     var country = null;
-    data = $x("//div[@id='inf_tt_u']/div[@id='inf_tt_text_table1']/a[contains(@href, 'countryinfo?id=')]");
+    data = $x("//div[@class='inf_t_l_b2']/dl/dd/a[contains(@href, 'countryinfo?id=')]");
     if (data.length == 1) {
         country = { id: data[0].href.match(/id=(\d+)/)[1], name: data[0].innerHTML.trim() };
     } else {
@@ -439,7 +445,7 @@ Holder.prototype.injectTownInfo = function() {
     var trelief = '';
     var trace = '';
 
-    data = $x("//div[@id='inf_tt_u']/div[@id='inf_tt_text_table1']/img[contains(@class, 'res')]");
+    data = $x("//div[@class='inf_t_l_b2']/dl/dd/img[contains(@class, 'res')]");
     if (data.length > 0) {
         popvalue = parseInt(data[0].parentNode.lastChild.nodeValue);
     }
@@ -507,7 +513,7 @@ Holder.prototype.injectTownInfo = function() {
     }
 
     var elem = $e('div', inner, { id: 'towndiv' });
-    var infDiv = $q("inf_line");
+    var infDiv = $c("inf_line")[0];
     infDiv.parentNode.insertBefore(elem, infDiv.nextSibling);
 
     $q('townadd').addEventListener('click', clickAddTown(town, this), false);
@@ -2177,8 +2183,13 @@ function parseCityListPage() {
         cityInfo.nas = $x("./div", ct)[1].lastChild.nodeValue;
 
         var rast = $x('./nobr', $x("./div", ct)[2])[0];
-        cityInfo.rast = rast.childNodes[0].nodeValue.match(/(\d+.\d)/)[1];
-        cityInfo.put = rast.childNodes[1].innerHTML;
+        if (rast) {
+            cityInfo.rast = rast.childNodes[0].nodeValue.match(/(\d+.\d)/)[1];
+            cityInfo.put = rast.childNodes[1].innerHTML;
+        } else {
+            cityInfo.rast = '';
+            cityInfo.put = '';
+        }
     }
     var divNfo = $e('DIV');
     $x("//div[@id='tb_town']")[0].appendChild(divNfo);
