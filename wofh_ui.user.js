@@ -1482,10 +1482,10 @@ function injectTradeOps(holder) {
     var onMrk = 0;
     trdcnt = parseInt($x("//a[@id='freetorg']")[0].innerHTML);
     trdcntof = parseInt($x("//a[@id='alltorg']")[0].innerHTML);
-  	holder.cities.list[holder.cities.current].traders={free: trdcnt/250, market: onMrk, total: trdcntof/250};
+  	holder.cities.list[holder.cities.current].traders={free: trdcnt, market: onMrk, total: trdcntof};
   	_setValue('cities', _serialize(holder.cities));
 
-    var tradeContainer = new TradeContainer(trdcnt);
+    var tradeContainer = new TradeContainer(trdcnt*250);
     tradeContainer.init();
 }
 
