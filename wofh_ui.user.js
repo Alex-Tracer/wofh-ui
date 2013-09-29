@@ -2,28 +2,29 @@
 // @name 		User Interface Script (Big Release World)
 // @namespace 	http://wofh.ru/
 // @author      http://code.google.com/p/wofh-ui-user-js/people/list
-// @version     1.4.1
+// @version     1.4.2
 // @include     http://w*.wofh.ru/*
+// @require     http://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js
 // ==/UserScript==
 
 
 String.prototype.trim = function() {
     return this.replace(/^\s+|\s+$/g, '');
-}
+};
 
 Date.prototype.format = function(str) {
     // yyyy.mm.dd hh:nn:ss
     return str.split('yyyy').join(this.getFullYear()).split('mm').join(LZ(this.getMonth() + 1)).split('dd').join(LZ(this.getDate())).split('hh').join(LZ(this.getHours())).split('nn').join(LZ(this.getMinutes())).split('ss').join(LZ(this.getSeconds()));
-}
+};
 
 Date.prototype.formatTime = function() {
     // HH:MM:SS
     return LZ(this.getUTCHours() + (this.getUTCDate() - 1) * 24) + ":" + LZ(this.getUTCMinutes()) + ":" + LZ(this.getUTCSeconds());
-}
+};
 
 Math.randomInt = function (min, max) {
     return Math.floor(Math.random() * (max - min + 1)) + min;
-}
+};
 
 function _setValue(key, value) {
     window.localStorage.setItem(key + '_' + playerName + '_' + currentHost, value);
@@ -1473,8 +1474,8 @@ function injectTradeOps(holder) {
     var trdcnt = -1;
     var trdcntof = -1;
     var onMrk = 0;
-    trdcnt = parseInt($x("//a[@title='Доступно']/span[@id='inpb']")[0].innerHTML);
-    trdcntof = parseInt($x("//a[@title='Всего']")[0].innerHTML);
+    trdcnt = parseInt($x("//a[@id='freetorg']")[0].innerHTML);
+    trdcntof = parseInt($x("//a[@id='alltorg']")[0].innerHTML);
   	holder.cities.list[holder.cities.current].traders={free: trdcnt/250, market: onMrk, total: trdcntof/250};
   	_setValue('cities', _serialize(holder.cities));
 
@@ -2130,7 +2131,8 @@ function parseCityListPage() {
         for (var i in infoTr) {
             var centroid = $x("./div[@class='conbut2']/div[@class='M_bt M_bt_cent fR']/a", infoTr[i])[0];
             var coords = centroid.href.match(/x=(\d+)&y=(\d+)/);
-            var id = infoTr[i].getAttribute("onclick").match(/id=(\d+)/)[1];
+            var townLink = $x("./*/div[@class='t_name fwB']/a", infoTr[i])[0];
+            var id = townLink.getAttribute("href").match(/id=(\d+)/)[1];
             allPlayerCitiesHolder[id] = {x: parseInt(coords[1]), y: parseInt(coords[2])};
         }
         _setValue("all_player_cities_holder", _serialize(allPlayerCitiesHolder));
