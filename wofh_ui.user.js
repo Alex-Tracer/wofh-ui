@@ -2301,7 +2301,7 @@ function injectAdvTrade(){
       tradeTd[3].appendChild($e('br'));
       tradeTd[3].appendChild(lmax);
 
-      var inpu = $x("./form/div/div/nobr/input", tradeTd[6])[0];
+      var inpu = $x(".//input[@name='count']", tradeTd[6])[0];
       $q('incb' + i).addEventListener('click', onIncValue(inpu, 1, maxval), false);
       $q('incbt' + i).addEventListener('click', onIncValue(inpu, 4, maxval), false);
       $q('decb' + i).addEventListener('click', onIncValue(inpu, -1, maxval), false);
