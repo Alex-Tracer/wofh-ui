@@ -2,7 +2,8 @@
 // @name 		User Interface Script (Big Release World)
 // @namespace 	http://wofh.ru/
 // @author      http://code.google.com/p/wofh-ui-user-js/people/list
-// @version     1.4.2
+// @author      Regis
+// @version     1.4.3
 // @include     http://w*.wofh.ru/*
 // @require     http://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js
 // ==/UserScript==
@@ -1561,16 +1562,11 @@ function collectTrainInfo(holder, panel) {
                     s = s[0].innerHTML;
                     found = s.match(/(\d+)\:(\d+)\:(\d+)/);
                 } else {
-                    s = $x("./span[@class='td']", buildDiv[0])[0].innerHTML;
-                    var days = s.match(/(\d+).(\d+) дн./);
-                    var minutes = (parseInt(days[1]) + parseInt(days[2])/10) * 24 * 60 * 60;
-                    found = ['0', '0', '00', '' + Math.round(minutes)] ;
+                    s = $x("./span[@class='td build_train_timer']", buildDiv[0])[0].innerHTML;
+                    var matched = s.match(/(\d+)\s*дн. (\d+):(\d+):(\d+)/);
+                    found = [null, parseInt(matched[1], 10) * 24 + parseInt(matched[2], 10), matched[3], matched[4]];
                 }
-				var found2 = found[2];
-				if (found2.indexOf('0') == 0) {
-					found2 = found2.substring(1,found2.length);
-				}
-				trInfo.timeEnd = new Date().getTime() + (parseInt(found[1])*60*60 + parseInt(found2)*60 + parseInt(found[3]))*1000;
+                trInfo.timeEnd = new Date().getTime() + (parseInt(found[1], 10) * 60 * 60 + parseInt(found[2], 10) * 60 + parseInt(found[3], 10)) * 1000;
             }
 		}
         holder.cities.list[holder.cities.current].train[bpos] = trInfo;
@@ -1611,10 +1607,11 @@ function collectTrainInfo(holder, panel) {
 					//	идет производство войск
 					var hr = $x(".//a[contains(@href,'unitinfo?id=')]", buildDiv[0])[0].href;
 					trInfo.unitId = parseInt(hr.match(/id=(\d+)/)[1]);
-					trInfo.unitCount = parseInt(buildDiv[0].innerHTML.match(/Готово: (\d+)\s*из\s*(\d+)/)[2]);
-					var s = $x(".//span/span[contains(@id, 'timer')]", buildDiv[0])[0].innerHTML;
-					var found = s.match(/(\d+)\:(\d+)\:(\d+)/);
-					trInfo.timeEnd = new Date().getTime() + (parseInt(found[1])*60*60 + parseInt(found[2])*60 + parseInt(found[3]))*1000;
+					trInfo.unitCount = parseInt(buildDiv[0].innerHTML.match(/Готово:\s+(\d+)\s*из\s*(\d+)/)[2]);
+					var s = $x("./span[@class='td build_train_timer']", buildDiv[0])[0].innerHTML;
+                    var matched = s.match(/(\d+)\s*дн. (\d+):(\d+):(\d+)/);
+					var found = [null, parseInt(matched[1], 10) * 24 + parseInt(matched[2], 10), matched[3], matched[4]];
+                    trInfo.timeEnd = new Date().getTime() + (parseInt(found[1], 10) * 60 * 60 + parseInt(found[2], 10) * 60 + parseInt(found[3], 10)) * 1000;
 					holder.cities.list[holder.cities.current].train[trCnt] = trInfo;
 				}
 			}
