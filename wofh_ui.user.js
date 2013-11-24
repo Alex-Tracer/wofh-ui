@@ -3,7 +3,7 @@
 // @namespace 	http://wofh.ru/
 // @author      http://code.google.com/p/wofh-ui-user-js/people/list
 // @author      Regis
-// @version     1.4.3.1
+// @version     1.4.4
 // @include     http://w*.wofh.ru/*
 // @require     http://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js
 // ==/UserScript==
@@ -310,6 +310,63 @@ var buildInfoHolder = eval('({\
 })');
 
 var buildLevelMap = {13:5, 14: 1, 19:0, 34: 1, 40: 0, 51:0, 67: 0};
+
+var notifications = {
+    isSupported: function () {
+        return window.Notification || window.webkitNotifications;
+    },
+    isPermissionGranted: function () {
+        return window.Notification.permission === "granted" || window.webkitNotifications && window.webkitNotifications.checkPermission() == 0;
+    },
+    requestPermission: function () {
+        Notification.requestPermission(function (permission) {
+            // Whatever the user answers, we make sure Chrome stores the information
+            if(!('permission' in Notification)) {
+                Notification.permission = permission;
+            }
+        });
+    },
+    showNotification: function (title, tag, text, imageLink) {
+        var n = new Notification(title, {
+            tag: tag,
+            body: text,
+            icon: imageLink
+        });
+        /*
+         n.onshow = function () {
+         setTimeout(n.close, 60 * 1000);
+         }*/
+        return n;
+    }
+};
+
+function notifyUnitTrainComplete(townId, buildingPos, unitId, unitCount) {
+    var n = notifications.showNotification(
+        "Тренировка завершена",
+        "training-complete",
+        "Тренировка " + unitCount + " юнитов завершена",
+        'http://w16.wofh.ru/p/u/' + unitId + '.png');
+
+    n.onclick = function() {
+        //window.location = "http://w16.wofh.ru/build?pos=" + buildingPos + "&tid=" + townId;
+        window.focus();
+        //window.location = "http://w16.wofh.ru/build?pos=" + buildingPos + "&tid=" + townId;
+    };
+
+}
+
+function tryNotifyUnitTrainComplete(townId, buildingPos, unitId, unitCount) {
+    if (notifications.isSupported() && notifications.isPermissionGranted() && localStorage) {
+        // Avoid duplicate messages from different browser tabs
+        var dateTime = new Date().getTime();
+        var lastNotification = parseInt(localStorage.getItem("lastTrainingNotification") || 0, 10);
+        if ((dateTime - lastNotification) > 10 * 1000) {
+            localStorage.setItem("lastTrainingNotification", dateTime);
+            notifyUnitTrainComplete(townId, buildingPos, unitId, unitCount);
+        }
+    }
+}
+
 var Holder = (function() {
 
     var actualConstructor = function() {
@@ -876,6 +933,13 @@ function onUSLoad() {
             ;
         }
         text = '<table class="tactics" >' + text + '</table>';
+
+        if (notifications.isSupported()) {
+            if (!notifications.isPermissionGranted()) {
+                text += '<button id="askNotificationPermissionButton">Включить уведомления</button>';
+            }
+        }
+
         $q(this.content.id).innerHTML = text;
         for (var ci in holder.cities.list) {
             var trInfoArr = holder.cities.list[ci].train;
@@ -883,6 +947,14 @@ function onUSLoad() {
                 if (trInfoArr[i]) {
                     $q('rm_' + ci + '_' + i).addEventListener('click', onRemoveTrainBox(ci, i, holder, this), false);
                 }
+            }
+        }
+
+        if (notifications.isSupported()) {
+            if (!notifications.isPermissionGranted()) {
+                $q('askNotificationPermissionButton').addEventListener('click', function () {
+                    notifications.requestPermission();
+                });
             }
         }
     }
@@ -1632,15 +1704,21 @@ function onRemoveTrainBox(ci, i, holder, panel){
 
 function trainTimer(holder, panel) {
 	for (var ci in holder.cities.list) {
-		var trInfoArr = holder.cities.list[ci].train;
+        var cityInfo = holder.cities.list[ci];
+        var trInfoArr = cityInfo.train;
 		for (var i in trInfoArr) {
-			if (trInfoArr[i] && trInfoArr[i].timeEnd) {
-				if (trInfoArr[i].timeEnd - new Date().getTime() <=0) {
+            var trainingInfo = trInfoArr[i];
+            if (trainingInfo && trainingInfo.timeEnd) {
+				if (trainingInfo.timeEnd - new Date().getTime() <=0) {
 					document.getElementById("tr_" + ci + "_" + i).innerHTML = 'постройка окончена';
 					//Ахтунг, здание простаивает!!! А игрок не в курсе!
+                    var oldColor =  $q(panel.title.id).style.backgroundColor;
 					$q(panel.title.id).style.backgroundColor = panel.title.alertBackground;
+                    if (oldColor != panel.title.alertBackground) {
+                        tryNotifyUnitTrainComplete(cityInfo.id, i, trainingInfo.unitId, trainingInfo.unitCount);
+                    }
 				} else {
-					document.getElementById("tr_" + ci + "_" + i).innerHTML =  new Date(trInfoArr[i].timeEnd - new Date().getTime()).formatTime();
+					document.getElementById("tr_" + ci + "_" + i).innerHTML =  new Date(trainingInfo.timeEnd - new Date().getTime()).formatTime();
 				}
 			}
 		}
