@@ -1002,7 +1002,7 @@ function onUSLoad() {
             for (var i in trInfoArr) {
                 if (trInfoArr[i]) {
                     if (trInfoArr[i].timeEnd) {
-                        s += '<td>&nbsp;<span id="tr_' + ci + '_' + i + '" >' + new Date(trInfoArr[i].timeEnd - new Date().getTime() + new Date().getTimezoneOffset() * 60 * 1000).formatTime() + '</span>&nbsp;';
+                        s += '<td>&nbsp;<span id="tr_' + ci + '_' + i + '" >' + new Date(trInfoArr[i].timeEnd - new Date().getTime() /*+ new Date().getTimezoneOffset() * 60 * 1000*/).formatTime() + '</span>&nbsp;';
                     } else
                         s += '<td>&nbsp;';
                     s += '<div style="display:inline; font-size:100%; padding-left:20px"><a style="color:red" id="rm_' + ci + '_' + i + '" href="javascript:void(0);">X</a></div></td>';
@@ -1801,13 +1801,14 @@ function onRemoveTrainBox(ci, i, holder, panel){
 }
 
 function trainTimer(holder, panel) {
-	for (var ci in holder.cities.list) {
+    var currentTime = new Date().getTime();
+    for (var ci in holder.cities.list) {
         var cityInfo = holder.cities.list[ci];
         var trInfoArr = cityInfo.train;
 		for (var i in trInfoArr) {
             var trainingInfo = trInfoArr[i];
             if (trainingInfo && trainingInfo.timeEnd) {
-				if (trainingInfo.timeEnd - new Date().getTime() <=0) {
+				if (trainingInfo.timeEnd - currentTime <=0) {
 					document.getElementById("tr_" + ci + "_" + i).innerHTML = 'постройка окончена';
 					//Ахтунг, здание простаивает!!! А игрок не в курсе!
                     var oldColor =  $q(panel.title.id).style.backgroundColor;
@@ -1816,7 +1817,7 @@ function trainTimer(holder, panel) {
                         tryNotifyUnitTrainComplete(cityInfo.id, i, trainingInfo.unitId, trainingInfo.unitCount);
                     }
 				} else {
-					document.getElementById("tr_" + ci + "_" + i).innerHTML =  new Date(trainingInfo.timeEnd - new Date().getTime()).formatTime();
+					document.getElementById("tr_" + ci + "_" + i).innerHTML =  new Date(trainingInfo.timeEnd - currentTime).formatTime();
 				}
 			}
 		}
@@ -1827,10 +1828,10 @@ function trainTimer(holder, panel) {
 			var trInfoArr = holder.cities.list[ci].tradeOperation;
 			for (var i in trInfoArr) {
 				if (trInfoArr[i] && trInfoArr[i].time) {
-					if (trInfoArr[i].time - new Date().getTime() <=0) {
+					if (trInfoArr[i].time - currentTime <=0) {
 						document.getElementById("op_" + ci + "_" + i).innerHTML = 'просрочено';
 					} else {
-						document.getElementById("op_" + ci + "_" + i).innerHTML =  new Date(trInfoArr[i].time - new Date().getTime()).formatTime();
+						document.getElementById("op_" + ci + "_" + i).innerHTML =  new Date(trInfoArr[i].time - currentTime).formatTime();
 					}
 				}
 			}
