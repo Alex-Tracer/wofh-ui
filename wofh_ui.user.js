@@ -3,11 +3,12 @@
 // @namespace 	http://wofh.ru/
 // @author      http://code.google.com/p/wofh-ui-user-js/people/list
 // @author      Regis
-// @version     1.4.4
+// @version     1.5.0
 // @include     http://w*.wofh.ru/*
 // @require     http://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js
 // ==/UserScript==
 
+var enableTrainingCompletionNotification = false;
 
 String.prototype.trim = function() {
     return this.replace(/^\s+|\s+$/g, '');
@@ -29,6 +30,10 @@ Math.randomInt = function (min, max) {
 
 function _setValue(key, value) {
     window.localStorage.setItem(key + '_' + playerName + '_' + currentHost, value);
+}
+
+function _removeValue(key) {
+    window.localStorage.removeItem(key + '_' + playerName + '_' + currentHost);
 }
 
 function _getValue(key, defaultValue) {
@@ -76,6 +81,10 @@ function $x(expression, parent) {
 function $c(className, parent) {
     "use strict";
     return (parent || document).getElementsByClassName(className)
+}
+
+function $$(selector) {
+    return document.querySelectorAll(selector);
 }
 
 // создание элемента
@@ -337,26 +346,71 @@ var notifications = {
          setTimeout(n.close, 60 * 1000);
          }*/
         return n;
+    },
+    tryShowNotification: function (title, tag, text, imageLink) {
+        if (notifications.isSupported() && notifications.isPermissionGranted()) {
+            return notifications.showNotification(title, tag, text, imageLink);
+        } else {
+            return null;
+        }
     }
 };
 
 function notifyUnitTrainComplete(townId, buildingPos, unitId, unitCount) {
-    var n = notifications.showNotification(
+    var n = notifications.tryShowNotification(
         "Тренировка завершена",
         "training-complete",
         "Тренировка " + unitCount + " юнитов завершена",
         'http://w16.wofh.ru/p/u/' + unitId + '.png');
 
-    n.onclick = function() {
-        //window.location = "http://w16.wofh.ru/build?pos=" + buildingPos + "&tid=" + townId;
-        window.focus();
-        //window.location = "http://w16.wofh.ru/build?pos=" + buildingPos + "&tid=" + townId;
-    };
-
+    if (n) {
+        n.onclick = function() {
+            //window.location = "http://w16.wofh.ru/build?pos=" + buildingPos + "&tid=" + townId;
+            window.focus();
+            //window.location = "http://w16.wofh.ru/build?pos=" + buildingPos + "&tid=" + townId;
+        };
+    }
 }
 
+/*
+function letUserCanEnableNotifications() {
+    // Нет смысла предлагать уведомления, если они не поддерживаются
+    if (notifications.isSupported()) {
+        // Нет смысла предлагать уведомления, если они уже включены
+        if (!notifications.isPermissionGranted()) {
+            var button = $('<button id="askNotificationPermissionButton">Включить уведомления</button>').click(function () {
+                notifications.requestPermission();
+            });
+            $('#settingsPanel').append(button);
+        }
+    }
+}
+
+function notifyStorageFull(townId, townName, resourceName) {
+    var n = notifications.tryShowNotification(
+        "Склад переполнен",
+        "training-complete",
+        "Ресурс " + resourceName + " в городе " + townName + " не помещается на склад",
+        'http://w16.wofh.ru/p/g/b/17_1_1.png');
+
+    if (n) {
+        // Вешаем обработчик, который выполнится, если пользователь кликнет по уведомлению
+        n.onclick = function() {
+            window.location = "http://w16.wofh.ru/town?tid=" + townId;
+        };
+    }
+}
+
+function tryNotifyStorageFull(townId, townName, resourceName) {
+    // Пытаемся показать уведомление только если уведомления включены и нам их разрешили
+    if (notifications.isSupported() && notifications.isPermissionGranted()) {
+        notifyStorageFull(townId, townName, resourceName)
+    }
+}
+*/
+
 function tryNotifyUnitTrainComplete(townId, buildingPos, unitId, unitCount) {
-    if (notifications.isSupported() && notifications.isPermissionGranted() && localStorage) {
+    if (enableTrainingCompletionNotification && notifications.isSupported() && localStorage && isTrainingNotificationsEnabled()) {
         // Avoid duplicate messages from different browser tabs
         var dateTime = new Date().getTime();
         var lastNotification = parseInt(localStorage.getItem("lastTrainingNotification") || 0, 10);
@@ -775,6 +829,10 @@ Panel.prototype.renderContent = function(holder) {
 }
 
 
+function isTrainingNotificationsEnabled() {
+    return notifications.isPermissionGranted() && _getValue("trainingNotifications") == '1';
+}
+
 function onUSLoad() {
     function correctUI() {
         var unitbtn = $x("//div[@class='tunit_btns']");
@@ -934,9 +992,11 @@ function onUSLoad() {
         }
         text = '<table class="tactics" >' + text + '</table>';
 
-        if (notifications.isSupported()) {
-            if (!notifications.isPermissionGranted()) {
+        if (enableTrainingCompletionNotification && notifications.isSupported()) {
+            if (!isTrainingNotificationsEnabled()) {
                 text += '<button id="askNotificationPermissionButton">Включить уведомления</button>';
+            } else {
+                text += '<button id="disableNotificationsButton">Выключить уведомления</button>';
             }
         }
 
@@ -950,10 +1010,16 @@ function onUSLoad() {
             }
         }
 
-        if (notifications.isSupported()) {
-            if (!notifications.isPermissionGranted()) {
+        if (enableTrainingCompletionNotification && notifications.isSupported()) {
+            if (!isTrainingNotificationsEnabled()) {
                 $q('askNotificationPermissionButton').addEventListener('click', function () {
+                    _setValue('trainingNotifications', '1');
                     notifications.requestPermission();
+                });
+
+            } else {
+                $q('disableNotificationsButton').addEventListener('click', function () {
+                    _removeValue('trainingNotifications');
                 });
             }
         }
@@ -1088,7 +1154,9 @@ function onUSLoad() {
     // Распознаем форму тренировки войск
     if (document.location.href.indexOf('trainpage') != -1 || document.location.href.indexOf('build?pos=') != -1) {
         trameTimeCalculate();
-        collectTrainInfo(holder, train);
+        window.setTimeout(function () {
+            collectTrainInfo(holder, train);
+        }, 1000);
     }
 
     if (document.location.href.indexOf('account?id=') != -1) {
@@ -1606,9 +1674,8 @@ function collectTrainInfo(holder, panel) {
 	  	holder.cities.list[holder.cities.current].train = {};
 
 	if (document.location.href.indexOf('build?pos=') != -1) {
-		var tr = $x("//div[@class='tunit_cont']/form[contains(@action, 'train')]");
-		var buildDiv =  $x("//div[@class='build_train']/div[@class='desc']");
-        if (tr.length == 0 && buildDiv.length == 0)
+		var buildDiv = $x("//div[@class='page_train']");
+        if (buildDiv.length == 0)
 			return;
 
         var trInfo = {};
@@ -1618,22 +1685,26 @@ function collectTrainInfo(holder, panel) {
         var nfo = txt.match(/<a .*>(.*)<\/a> - (\d+)/);
         trInfo.building = nfo[1];
         trInfo.level = parseInt(nfo[2]);
-        if (tr.length > 0) {
-            // Присутвует форма тренировки - здание свободно
+        var currentTrainingUnit = $$(".train_first");
+        if (currentTrainingUnit.length == 0) {
+            // здание свободно
             trInfo.unitId = -1;
             trInfo.unitCount = 0;
             trInfo.timeEnd = 0;
         } else {
-			if (buildDiv.length > 0) {
+			//if (buildDiv.length > 0) {
 				// идет производство войск
-				var hr = $x("a[contains(@href,'unitinfo?id=')]", buildDiv[0])[0].href;
+				var hr = $x("a[contains(@href,'unitinfo?id=')]", currentTrainingUnit[0])[0].href;
 				trInfo.unitId = parseInt(hr.match(/id=(\d+)/)[1]);
-				trInfo.unitCount = parseInt(buildDiv[0].innerHTML.match(/Готово:\s*(\d+)\s*из\s*(\d+)/)[2]);
-                var s = $x("./span[@class='td build_train_timer']", buildDiv[0])[0].getAttribute("data-time");
-                timeToFinish = parseInt(s, 10) * 1000;
+				trInfo.unitCount = parseInt(currentTrainingUnit[0].innerHTML.match(/Готово:\s*(\d+)\s*из\s*(\d+)/)[2]);
+                var s = $x(".//span[@class='train_first_timer']", currentTrainingUnit[0])[0].getAttribute("data-time");
+                var finishServerTime = parseInt(s, 10);
+                var localTimezone = - new Date().getTimezoneOffset() / 60;
+                var serverTimezone = 4;
+                var timeDiff = (localTimezone - serverTimezone) * 1000 * 60 * 60;
 
-                trInfo.timeEnd = new Date().getTime() + timeToFinish;
-            }
+                trInfo.timeEnd = finishServerTime + timeDiff;
+            //}
 		}
         holder.cities.list[holder.cities.current].train[bpos] = trInfo;
 		_setValue('cities', _serialize(holder.cities));

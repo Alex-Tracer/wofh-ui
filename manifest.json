@@ -1,0 +1,16 @@
+{
+    "manifest_version": 2,
+    "content_scripts": [ {
+        "exclude_globs": [  ],
+        "exclude_matches": [  ],
+        "include_globs": [ "http://w*.wofh.ru/*" ],
+        "js": [ "wofh_ui.user.js" ],
+        "matches": [ "http://*.wofh.ru/*"],
+        "run_at": "document_idle"
+    } ],
+    "converted_from_user_script": true,
+    "description": "",
+    "key": "1H32aSfSln5c8O2qBkrIwP8bZOhJW+VH2Xhbkdl0eBI=",
+    "name": "User Interface Script (Big Release World)",
+    "version": "1.5.0"
+}
