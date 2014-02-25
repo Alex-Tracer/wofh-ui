@@ -8,6 +8,7 @@
 // @require     http://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js
 // ==/UserScript==
 
+var enableBuildingsPanel = false;
 var enableTrainingCompletionNotification = false;
 
 String.prototype.trim = function() {
@@ -833,6 +834,30 @@ function isTrainingNotificationsEnabled() {
     return notifications.isPermissionGranted() && _getValue("trainingNotifications") == '1';
 }
 
+function waitForSelector(selector, fn) {
+    "use strict";
+    var timerFunction = function () {
+        if ($$(selector).length) {
+            fn();
+        } else {
+            window.setTimeout(timerFunction, 50);
+        }
+    };
+    timerFunction();
+}
+
+function waitForContent(selector, fn) {
+    "use strict";
+    var timerFunction = function () {
+        if ($$(selector).length && $$(selector)[0].innerHTML.length) {
+            fn();
+        } else {
+            window.setTimeout(timerFunction, 50);
+        }
+    };
+    timerFunction();
+}
+
 function onUSLoad() {
     function correctUI() {
         var unitbtn = $x("//div[@class='tunit_btns']");
@@ -1150,13 +1175,15 @@ function onUSLoad() {
     }
     // распознаём отправку грузов
     if (document.location.href.indexOf('market') != -1)
-        injectTradeOps(holder);
+        waitForContent('#freetorg', function () {
+            injectTradeOps(holder);
+        });
     // Распознаем форму тренировки войск
     if (document.location.href.indexOf('trainpage') != -1 || document.location.href.indexOf('build?pos=') != -1) {
         trameTimeCalculate();
-        window.setTimeout(function () {
+        waitForSelector('.page_train', function () {
             collectTrainInfo(holder, train);
-        }, 1000);
+        });
     }
 
     if (document.location.href.indexOf('account?id=') != -1) {
@@ -1202,7 +1229,7 @@ function onUSLoad() {
 
     if (document.location.href.indexOf('town') != -1) {
         var blocks = $x("//div[contains(@style,'/p/if/stone/sh_sl.png')]");
-        if (blocks.length == 0) {
+        if (blocks.length == 0 && enableBuildingsPanel) {
             $e('DIV', null, {id: 'en_build_info_panel'}, {cursor:'pointer', background: 'url(/p/if/stone/sh_sl.png)', position: 'absolute', left: '-7px', top:'444px', zIndex:10000, width:'29px', height:'26px'}, $x("//div[@class='balka2_ balka2_p1']/div[@id='cont04']")[0]);
             $q('en_build_info_panel').addEventListener('click', changeBuildPanelView(), false);
         }
